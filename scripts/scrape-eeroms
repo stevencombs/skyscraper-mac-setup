@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# scrape-eeroms — scrape one or more systems on an EmuELEC-style SD card
+#
+# Usage:
+#   scrape-eeroms snes              # ScreenScraper gather + gamelist for snes
+#   scrape-eeroms snes gba nes      # multiple systems
+#   scrape-eeroms --list            # list systems present on the card
+#   scrape-eeroms --cache-only snes # only regenerate gamelist from cache
+#
+# Environment:
+#   ROMS_ROOT   SD card mount path (default: /Volumes/EEROMS)
+#
+set -euo pipefail
+
+export PATH="${HOME}/.local/bin:${PATH}"
+ROMS_ROOT="${ROMS_ROOT:-/Volumes/EEROMS}"
+
+if [[ ! -d "${ROMS_ROOT}" ]]; then
+  echo "Error: SD card not mounted at ${ROMS_ROOT}" >&2
+  echo "Set ROMS_ROOT if your volume path differs, e.g.:" >&2
+  echo "  ROMS_ROOT=/Volumes/MYCARD scrape-eeroms snes" >&2
+  exit 1
+fi
+
+if ! command -v Skyscraper >/dev/null 2>&1; then
+  echo "Error: Skyscraper not found on PATH." >&2
+  echo "Expected install location: ${HOME}/.local/bin/Skyscraper" >&2
+  exit 1
+fi
+
+if [[ "${1:-}" == "--list" ]]; then
+  echo "Systems with content under ${ROMS_ROOT}:"
+  for d in "${ROMS_ROOT}"/*/; do
+    [[ -d "$d" ]] || continue
+    name=$(basename "$d")
+    case "$name" in
+      bios|bezels|BGM|bgmusic|backup|downloads|launchimages|manual|savestates|screenshots|splash|tools|videos|System\ Volume\ Information) continue ;;
+    esac
+    count=$(find "$d" -type f \( -name '*.zip' -o -name '*.7z' -o -name '*.bin' -o -name '*.smc' -o -name '*.sfc' \
+      -o -name '*.nes' -o -name '*.gba' -o -name '*.gbc' -o -name '*.gb' -o -name '*.n64' -o -name '*.z64' \
+      -o -name '*.pbp' -o -name '*.iso' -o -name '*.chd' -o -name '*.cue' -o -name '*.cdi' -o -name '*.int' \
+      -o -name '*.col' -o -name '*.a26' -o -name '*.a78' -o -name '*.lnx' -o -name '*.ngp' -o -name '*.pce' \
+      -o -name '*.adf' -o -name '*.gdi' -o -name '*.rvz' \) 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "$count" != "0" ]]; then
+      printf "  %-20s %s files\n" "$name" "$count"
+    fi
+  done
+  exit 0
+fi
+
+CACHE_ONLY=0
+if [[ "${1:-}" == "--cache-only" ]]; then
+  CACHE_ONLY=1
+  shift
+fi
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: scrape-eeroms <platform> [platform...]"
+  echo "       scrape-eeroms --list"
+  echo "       scrape-eeroms --cache-only <platform>"
+  echo ""
+  echo "Environment: ROMS_ROOT=${ROMS_ROOT}"
+  echo "Example: scrape-eeroms atari7800"
+  echo "Requires ScreenScraper credentials in ~/.skyscraper/config.ini"
+  exit 1
+fi
+
+if ! grep -qE '^userCreds="[^"]+:[^"]+"' "${HOME}/.skyscraper/config.ini" 2>/dev/null; then
+  echo "WARNING: ScreenScraper userCreds not set (or still placeholder) in ~/.skyscraper/config.ini"
+  echo "  1) Register at https://www.screenscraper.fr"
+  echo "  2) Edit ~/.skyscraper/config.ini and set under [screenscraper]:"
+  echo '       userCreds="your_username:your_password"'
+  echo ""
+fi
+
+for platform in "$@"; do
+  if [[ ! -d "${ROMS_ROOT}/${platform}" ]]; then
+    echo "Skipping unknown platform folder: ${platform}" >&2
+    continue
+  fi
+  echo "========================================"
+  echo " Platform: ${platform}"
+  echo " ROMs:     ${ROMS_ROOT}/${platform}"
+  echo "========================================"
+  if [[ "${CACHE_ONLY}" -eq 0 ]]; then
+    echo "→ Gathering data from ScreenScraper..."
+    Skyscraper -p "${platform}" -s screenscraper
+  fi
+  echo "→ Generating EmulationStation gamelist + artwork..."
+  Skyscraper -p "${platform}"
+  echo "✓ Done: ${platform}"
+  echo ""
+done
+
+echo "All requested systems finished."
+echo "Eject the SD card safely, put it back in the handheld,"
+echo "then Update Game Lists (or reboot)."

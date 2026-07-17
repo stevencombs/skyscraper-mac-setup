@@ -1,0 +1,57 @@
+; Skyscraper config for R36MAX2 / EmuELEC SD card (EEROMS)
+; Copy to: ~/.skyscraper/config.ini
+; Docs: https://gemba.github.io/skyscraper/CONFIGINI/
+;
+; NEVER commit real ScreenScraper passwords to git.
+
+[main]
+; ROMs root on the mounted SD card. /PLATFORM is appended automatically.
+inputFolder="/Volumes/EEROMS"
+gameListFolder="/Volumes/EEROMS"
+; Media goes to /Volumes/EEROMS/<platform>/media by default
+frontend="emulationstation"
+relativePaths="true"
+gameListBackup="true"
+
+; Non-interactive runs (good for scripting / large libraries)
+unattend="true"
+unattendSkip="true"
+verbosity="1"
+threads="4"
+
+; Prefer English / US art; fall back to world / Europe / Japan
+lang="en"
+region="us"
+regionPrios="us,eu,wor,jp,ss,uk"
+
+; What to cache from scrapers
+cacheCovers="true"
+cacheScreenshots="true"
+cacheWheels="true"
+cacheMarquees="false"
+cacheTextures="false"
+videos="false"
+
+; Skip BIOS / non-game dumps
+excludePattern="*[BIOS]*,*bios*"
+
+; Recurse into Classic Game / Featured Games / letter folders, etc.
+subdirs="true"
+
+[emulationstation]
+; Keep gamelist.xml next to the ROMs
+; mediaFolder defaults to <platform>/media
+
+[screenscraper]
+; Create a free account at https://www.screenscraper.fr
+userCreds="YOUR_USERNAME:YOUR_PASSWORD"
+threads="4"
+cacheCovers="true"
+cacheScreenshots="true"
+cacheWheels="true"
+videos="false"
+
+; Optional: import existing EmulationStation gamelists into the cache first
+[esgamelist]
+cacheRefresh="true"
+cacheScreenshots="false"

@@ -1,0 +1,14 @@
+# Never commit secrets
+**/config.ini
+!**/*.example
+.env
+*.pem
+
+# macOS
+.DS_Store
+._*
+
+# Local scratch
+*.log
+/tmp/
+.push_payload.json
